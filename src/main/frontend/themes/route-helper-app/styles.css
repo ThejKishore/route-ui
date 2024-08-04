@@ -1,0 +1,20 @@
+@import url('./main-layout.css');
+@import url('./views/route-details-view.css');
+@import url('@fontsource/roboto/index.css');    html {
+      --lumo-line-height-m: 1.4;
+      --lumo-line-height-s: 1.2;
+      --lumo-line-height-xs: 1.1;
+      --lumo-border-radius-s: 1px;
+      --lumo-border-radius-m: 2px;
+      --lumo-border-radius-l: 4px;
+      --lumo-primary-color: hsl(109, 35%, 35%);
+      --lumo-primary-color-50pct: hsla(109, 35%, 35%, 0.5);
+      --lumo-primary-color-10pct: hsla(109, 35%, 35%, 0.1);
+      --lumo-primary-text-color: hsl(119, 79%, 32%);
+      --lumo-error-color: hsl(3, 93%, 27%);
+      --lumo-error-color-50pct: hsla(3, 93%, 27%, 0.5);
+      --lumo-error-color-10pct: hsla(3, 93%, 27%, 0.1);
+      --lumo-error-text-color: hsl(3, 86%, 34%);
+--lumo-font-family: Roboto;
+
+    }
