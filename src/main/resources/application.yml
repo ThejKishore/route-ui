@@ -1,0 +1,33 @@
+server:
+    port: ${PORT:7278}
+    servlet:
+        context-path: /routing-ui
+spring:
+    datasource:
+        driver-class-name: org.postgresql.Driver
+        password: adminPass
+        url: jdbc:postgresql://localhost:5432/springlearn
+        username: root
+    jpa:
+        defer-datasource-initialization: true
+        hibernate:
+            ddl-auto: update
+        show-sql: true
+
+    properties:
+        hibernate:
+            format_sql: true
+    sql:
+        init:
+            mode: always
+
+logging:
+    level:
+        org.atmosphere: WARN
+        org.hibernate.SQL: DEBUG
+        org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+        net.ttddyy.dsproxy.listener: DEBUG
+
+vaadin:
+    allowed-packages: com.vaadin,org.vaadin,com.kish.learn.application
+    launch-browser: true

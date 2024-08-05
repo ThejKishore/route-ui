@@ -1,8 +1,6 @@
 package com.kish.learn.application.views;
 
 
-import com.kish.learn.application.views.filterform.FilterFormView;
-import com.kish.learn.application.views.predicateform.PredicateFormView;
 import com.kish.learn.application.views.routedetails.RouteDetailsView;
 import com.kish.learn.application.views.routeform.RouteFormView;
 import com.vaadin.flow.component.Component;
@@ -48,14 +46,11 @@ public class MainLayout extends AppLayout {
             this.view = view;
             RouterLink link = new RouterLink();
             // Use Lumo classnames for various styling
-            link.addClassNames(Display.FLEX, Gap.XSMALL, Height.MEDIUM, AlignItems.CENTER, Padding.Horizontal.SMALL,
-                    TextColor.BODY);
+            link.addClassNames(Display.FLEX, Gap.XSMALL, Height.MEDIUM, AlignItems.CENTER, Padding.Horizontal.SMALL, TextColor.BODY);
             link.setRoute(view);
-
             Span text = new Span(menuTitle);
             // Use Lumo classnames for various styling
             text.addClassNames(FontWeight.MEDIUM, FontSize.MEDIUM, Whitespace.NOWRAP);
-
             if (icon != null) {
                 link.add(icon);
             }
@@ -76,27 +71,20 @@ public class MainLayout extends AppLayout {
     private Component createHeaderContent() {
         Header header = new Header();
         header.addClassNames(BoxSizing.BORDER, Display.FLEX, FlexDirection.COLUMN, Width.FULL);
-
         Div layout = new Div();
         layout.addClassNames(Display.FLEX, AlignItems.CENTER, Padding.Horizontal.LARGE);
-
         H1 appName = new H1("RoutingApp");
         appName.addClassNames(Margin.Vertical.MEDIUM, Margin.End.AUTO, FontSize.LARGE);
         layout.add(appName);
-
         Nav nav = new Nav();
         nav.addClassNames(Display.FLEX, Overflow.AUTO, Padding.Horizontal.MEDIUM, Padding.Vertical.XSMALL);
-
         // Wrap the links in a list; improves accessibility
         UnorderedList list = new UnorderedList();
         list.addClassNames(Display.FLEX, Gap.SMALL, ListStyleType.NONE, Margin.NONE, Padding.NONE);
         nav.add(list);
-
         for (MenuItemInfo menuItem : createMenuItems()) {
             list.add(menuItem);
-
         }
-
         header.add(layout, nav);
         return header;
     }
@@ -104,13 +92,7 @@ public class MainLayout extends AppLayout {
     private MenuItemInfo[] createMenuItems() {
         return new MenuItemInfo[]{ //
                 new MenuItemInfo("RouteDetails", LineAwesomeIcon.FILTER_SOLID.create(), RouteDetailsView.class), //
-
                 new MenuItemInfo("Route Form", LineAwesomeIcon.USER.create(), RouteFormView.class), //
-
-                new MenuItemInfo("Filter Form", LineAwesomeIcon.MAP_MARKER_SOLID.create(), FilterFormView.class), //
-
-                new MenuItemInfo("Predicate Form", LineAwesomeIcon.MAP_MARKER_SOLID.create(), PredicateFormView.class), //
-
         };
     }
 

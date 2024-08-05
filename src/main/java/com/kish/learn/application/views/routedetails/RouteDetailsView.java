@@ -1,7 +1,8 @@
 package com.kish.learn.application.views.routedetails;
 
-import com.kish.learn.application.data.SamplePerson;
-import com.kish.learn.application.services.SamplePersonService;
+import com.kish.learn.application.business.route.RouteSvc;
+import com.kish.learn.application.business.route.dao.RouteDAO;
+import com.kish.learn.application.business.route.enumeration.HTTPMethod;
 import com.kish.learn.application.views.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Text;
@@ -20,6 +21,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -33,6 +35,8 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -42,16 +46,15 @@ import org.springframework.data.jpa.domain.Specification;
 @Uses(Icon.class)
 public class RouteDetailsView extends Div {
 
-    private Grid<SamplePerson> grid;
+    private Grid<RouteDAO> grid;
 
     private Filters filters;
-    private final SamplePersonService samplePersonService;
+    private final RouteSvc routeSvc;
 
-    public RouteDetailsView(SamplePersonService SamplePersonService) {
-        this.samplePersonService = SamplePersonService;
+    public RouteDetailsView(RouteSvc routeSvc) {
+        this.routeSvc = routeSvc;
         setSizeFull();
         addClassNames("route-details-view");
-
         filters = new Filters(() -> refreshGrid());
         VerticalLayout layout = new VerticalLayout(createMobileFilters(), filters, createGrid());
         layout.setSizeFull();
@@ -84,38 +87,32 @@ public class RouteDetailsView extends Div {
         return mobileFilters;
     }
 
-    public static class Filters extends Div implements Specification<SamplePerson> {
+    public static class Filters extends Div implements Specification<RouteDAO> {
 
-        private final TextField name = new TextField("Name");
-        private final TextField phone = new TextField("Phone");
-        private final DatePicker startDate = new DatePicker("Date of Birth");
-        private final DatePicker endDate = new DatePicker();
-        private final MultiSelectComboBox<String> occupations = new MultiSelectComboBox<>("Occupation");
-        private final CheckboxGroup<String> roles = new CheckboxGroup<>("Role");
+        private final TextField routerId = new TextField("Route Id");
+        private final TextField path = new TextField("Path");
+        private final TextField blueRouteUri = new TextField("Blue Route Uri");
+        private final TextField featureFlagKey = new TextField("Feature Flag Key");
+        private final TextField featureFlagValue = new TextField("Feature Flag Key");
 
         public Filters(Runnable onSearch) {
-
             setWidthFull();
             addClassName("filter-layout");
-            addClassNames(LumoUtility.Padding.Horizontal.LARGE, LumoUtility.Padding.Vertical.MEDIUM,
-                    LumoUtility.BoxSizing.BORDER);
-            name.setPlaceholder("First or last name");
-
-            occupations.setItems("Insurance Clerk", "Mortarman", "Beer Coil Cleaner", "Scale Attendant");
-
-            roles.setItems("Worker", "Supervisor", "Manager", "External");
-            roles.addClassName("double-width");
-
+            addClassNames(LumoUtility.Padding.Horizontal.LARGE, LumoUtility.Padding.Vertical.MEDIUM, LumoUtility.BoxSizing.BORDER);
+            routerId.setPlaceholder("Route Identifier...");
+            path.setPlaceholder("Path...");
+            blueRouteUri.setPlaceholder("complete route url ....");
+            featureFlagKey.setPlaceholder("feature flag key header name ....");
+            featureFlagValue.setPlaceholder("feature flag value header value....");
             // Action buttons
             Button resetBtn = new Button("Reset");
             resetBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             resetBtn.addClickListener(e -> {
-                name.clear();
-                phone.clear();
-                startDate.clear();
-                endDate.clear();
-                occupations.clear();
-                roles.clear();
+                routerId.clear();
+                path.clear();
+                blueRouteUri.clear();
+                featureFlagKey.clear();
+                featureFlagValue.clear();
                 onSearch.run();
             });
             Button searchBtn = new Button("Search");
@@ -126,109 +123,69 @@ public class RouteDetailsView extends Div {
             actions.addClassName(LumoUtility.Gap.SMALL);
             actions.addClassName("actions");
 
-            add(name, phone, createDateRangeFilter(), occupations, roles, actions);
+            add(routerId, path , blueRouteUri, featureFlagKey ,featureFlagValue,  actions);
         }
 
-        private Component createDateRangeFilter() {
-            startDate.setPlaceholder("From");
-
-            endDate.setPlaceholder("To");
-
-            // For screen readers
-            startDate.setAriaLabel("From date");
-            endDate.setAriaLabel("To date");
-
-            FlexLayout dateRangeComponent = new FlexLayout(startDate, new Text(" – "), endDate);
-            dateRangeComponent.setAlignItems(FlexComponent.Alignment.BASELINE);
-            dateRangeComponent.addClassName(LumoUtility.Gap.XSMALL);
-
-            return dateRangeComponent;
-        }
 
         @Override
-        public Predicate toPredicate(Root<SamplePerson> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
+        public Predicate toPredicate(Root<RouteDAO> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (!name.isEmpty()) {
-                String lowerCaseFilter = name.getValue().toLowerCase();
-                Predicate firstNameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")),
-                        lowerCaseFilter + "%");
-                Predicate lastNameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")),
-                        lowerCaseFilter + "%");
-                predicates.add(criteriaBuilder.or(firstNameMatch, lastNameMatch));
-            }
-            if (!phone.isEmpty()) {
-                String databaseColumn = "phone";
-                String ignore = "- ()";
-
-                String lowerCaseFilter = ignoreCharacters(ignore, phone.getValue().toLowerCase());
-                Predicate phoneMatch = criteriaBuilder.like(
-                        ignoreCharacters(ignore, criteriaBuilder, criteriaBuilder.lower(root.get(databaseColumn))),
-                        "%" + lowerCaseFilter + "%");
-                predicates.add(phoneMatch);
-
-            }
-            if (startDate.getValue() != null) {
-                String databaseColumn = "dateOfBirth";
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(databaseColumn),
-                        criteriaBuilder.literal(startDate.getValue())));
-            }
-            if (endDate.getValue() != null) {
-                String databaseColumn = "dateOfBirth";
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(criteriaBuilder.literal(endDate.getValue()),
-                        root.get(databaseColumn)));
-            }
-            if (!occupations.isEmpty()) {
-                String databaseColumn = "occupation";
-                List<Predicate> occupationPredicates = new ArrayList<>();
-                for (String occupation : occupations.getValue()) {
-                    occupationPredicates
-                            .add(criteriaBuilder.equal(criteriaBuilder.literal(occupation), root.get(databaseColumn)));
+            if (!routerId.isEmpty()) {
+                String lowerCaseFilter = routerId.getValue().toLowerCase();
+                if(StringUtils.isNoneBlank(lowerCaseFilter)) {
+                    Predicate routeIdPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("routeIdentifier")), "%" + lowerCaseFilter + "%");
+                    predicates.add(routeIdPredicate);
                 }
-                predicates.add(criteriaBuilder.or(occupationPredicates.toArray(Predicate[]::new)));
             }
-            if (!roles.isEmpty()) {
-                String databaseColumn = "role";
-                List<Predicate> rolePredicates = new ArrayList<>();
-                for (String role : roles.getValue()) {
-                    rolePredicates.add(criteriaBuilder.equal(criteriaBuilder.literal(role), root.get(databaseColumn)));
+            if (path.getValue() != null) {
+                String databaseColumn = "path";
+                String lowerCaseFilter = path.getValue().toLowerCase();
+                if(StringUtils.isNoneBlank(lowerCaseFilter)) {
+                    Predicate pathPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get(databaseColumn)), "%" + lowerCaseFilter + "%");
+                    predicates.add(pathPredicate);
                 }
-                predicates.add(criteriaBuilder.or(rolePredicates.toArray(Predicate[]::new)));
+            }
+
+            if (blueRouteUri.getValue() != null) {
+                String databaseColumn = "routeUriBlue";
+                String lowerCaseFilter = blueRouteUri.getValue().toLowerCase();
+                if(StringUtils.isNoneBlank(lowerCaseFilter)) {
+                    predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(databaseColumn)), "%" + lowerCaseFilter + "%"));
+                }
+            }
+
+            if (featureFlagKey.getValue() != null) {
+                String databaseColumn = "featureFlagKey";
+                String lowerCaseFilter = featureFlagKey.getValue().toLowerCase();
+                if(StringUtils.isNoneBlank(lowerCaseFilter)) {
+                    predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(databaseColumn)), "%" + lowerCaseFilter + "%"));
+                }
+            }
+
+            if (featureFlagValue.getValue() != null) {
+                String databaseColumn = "featureFlagValue";
+                String lowerCaseFilter = featureFlagValue.getValue().toLowerCase();
+                if(StringUtils.isNoneBlank(lowerCaseFilter)) {
+                    predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(databaseColumn)), "%" + lowerCaseFilter + "%"));
+                }
             }
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        }
-
-        private String ignoreCharacters(String characters, String in) {
-            String result = in;
-            for (int i = 0; i < characters.length(); i++) {
-                result = result.replace("" + characters.charAt(i), "");
-            }
-            return result;
-        }
-
-        private Expression<String> ignoreCharacters(String characters, CriteriaBuilder criteriaBuilder,
-                Expression<String> inExpression) {
-            Expression<String> expression = inExpression;
-            for (int i = 0; i < characters.length(); i++) {
-                expression = criteriaBuilder.function("replace", String.class, expression,
-                        criteriaBuilder.literal(characters.charAt(i)), criteriaBuilder.literal(""));
-            }
-            return expression;
         }
 
     }
 
     private Component createGrid() {
-        grid = new Grid<>(SamplePerson.class, false);
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("email").setAutoWidth(true);
-        grid.addColumn("phone").setAutoWidth(true);
-        grid.addColumn("dateOfBirth").setAutoWidth(true);
-        grid.addColumn("occupation").setAutoWidth(true);
-        grid.addColumn("role").setAutoWidth(true);
+        grid = new Grid<>(RouteDAO.class, false);
+        grid.addColumn("routeIdentifier").setAutoWidth(true);
+        grid.addColumn("method").setAutoWidth(true);
+        grid.addColumn("path").setAutoWidth(true);
+        grid.addColumn("routeUriBlue").setAutoWidth(true);
+        grid.addColumn("isFeatureFlag").setAutoWidth(true);
+        grid.addColumn("featureFlagKey").setAutoWidth(true);
+        grid.addColumn("featureFlagValue").setAutoWidth(true);
 
-        grid.setItems(query -> samplePersonService.list(
+        grid.setItems(query -> routeSvc.list(
                 PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)),
                 filters).stream());
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
