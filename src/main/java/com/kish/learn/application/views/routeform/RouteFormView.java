@@ -9,6 +9,7 @@ import com.kish.learn.application.business.route.enumeration.HTTPMethod;
 import com.kish.learn.application.business.route.enumeration.RequestPredicateType;
 import com.kish.learn.application.business.route.enumeration.SelectedFilter;
 import com.kish.learn.application.views.MainLayout;
+import com.kish.learn.application.views.routedetails.RouteDetailsView;
 import com.kish.learn.application.views.routeform.filterform.FilterFormView;
 import com.kish.learn.application.views.routeform.predicateform.PredicateFormView;
 import com.vaadin.flow.component.Composite;
@@ -24,15 +25,17 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @PageTitle("Route Form")
 @Route(value = "route-form", layout = MainLayout.class)
@@ -55,9 +58,9 @@ public class RouteFormView extends Composite<VerticalLayout> {
     TextField path = new TextField();
     Select<HTTPMethod> method = new Select<>();
     TextField blueUri = new TextField();
-    NumberField blueWeight = new NumberField();
+    TextField blueWeight = new TextField();
     TextField greenUri = new TextField();
-    NumberField greenWeight = new NumberField();
+    TextField greenWeight = new TextField();
     TextField featureKey = new TextField();
     TextField featureValue = new TextField();
     Select<TrafficSplit> trafficSplitSelect = new Select();
@@ -65,14 +68,13 @@ public class RouteFormView extends Composite<VerticalLayout> {
     HorizontalLayout layoutRow = new HorizontalLayout();
 
     Grid<RequestPredicateDAO> requestPredictedGrid = new Grid<>(RequestPredicateDAO.class);
-    VerticalLayout requestFilterLayout = new VerticalLayout();
     Grid<RequestFilterDAO> requestFilterGrid = new Grid<>(RequestFilterDAO.class);
 
     Details predicateDetails;
     Details filterDetails;
 
-    Button buttonPrimary = new Button();
-    Button buttonSecondary = new Button();
+    Button save = new Button();
+    Button clear = new Button();
 
     Dialog predicateDialog = new Dialog();
     Dialog filterDialog = new Dialog();
@@ -103,11 +105,11 @@ public class RouteFormView extends Composite<VerticalLayout> {
         layoutRow.addClassName(Gap.MEDIUM);
         layoutRow.setWidth("100%");
         layoutRow.getStyle().set("flex-grow", "1");
-        buttonPrimary.setText("Save");
-        buttonPrimary.setWidth("min-content");
-        buttonPrimary.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonSecondary.setText("Cancel");
-        buttonSecondary.setWidth("min-content");
+        save.setText("Save");
+        save.setWidth("min-content");
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        clear.setText("Cancel");
+        clear.setWidth("min-content");
         getContent().add(layoutColumn2);
         layoutColumn2.add(h3);
         layoutColumn2.add(formLayout2Col);
@@ -149,11 +151,47 @@ public class RouteFormView extends Composite<VerticalLayout> {
         }
 
         layoutColumn2.add(layoutRow);
-        layoutRow.add(buttonPrimary);
-        layoutRow.add(buttonSecondary);
+        layoutRow.add(save);
+        layoutRow.add(clear);
         setComponents(this.trafficSplitSelect.getValue());
         trafficSplitSelect.addValueChangeListener(l -> setComponents(l.getValue()));
         this.routeSvc = routeSvc;
+        setContent();
+
+        clear.addClickListener(buttonClickEvent -> {
+            clear.getUI().ifPresent( ui -> ui.navigate(RouteDetailsView.class));
+        });
+    }
+
+    private void setContent() {
+        if(routeDAO !=null){
+            routeIdentifier.setValue(routeDAO.getRouteIdentifier());
+            path.setValue(routeDAO.getPath());
+            method.setValue(routeDAO.getMethod());
+            blueWeight.setValue(Optional.ofNullable(routeDAO.getBlueWeight()).map(i -> i+"").orElseGet( () -> "100"));
+            greenWeight.setValue(Optional.ofNullable(routeDAO.getGreenWeight()).map(i -> i+"").orElseGet( () -> "0"));
+            blueUri.setValue(Optional.ofNullable(routeDAO.getRouteUriBlue()).orElseGet(() -> StringUtils.EMPTY));
+            greenUri.setValue(Optional.ofNullable(routeDAO.getRouteUriGreen()).orElseGet(() -> StringUtils.EMPTY));
+            featureKey.setValue(Optional.ofNullable(routeDAO.getFeatureFlagKey()).orElseGet(() -> StringUtils.EMPTY));
+            featureValue.setValue(Optional.ofNullable(routeDAO.getFeatureFlagValue()).orElseGet(() -> StringUtils.EMPTY));
+            requestFilterGrid.setItems(Optional.ofNullable(routeDAO.getRequestFilterDAOS()).orElseGet(Collections::emptySet));
+            requestPredictedGrid.setItems(Optional.ofNullable(routeDAO.getRequestPredicateDAOS()).orElseGet(Collections::emptySet));
+//            trafficSplitSelect.
+
+        }else{
+            routeIdentifier.clear();
+            path.clear();
+            method.clear();
+            trafficSplitSelect.setValue(TrafficSplit.NONE);
+            blueWeight.clear();
+            greenWeight.clear();
+            blueUri.clear();
+            greenUri.clear();
+            featureKey.clear();
+            featureValue.clear();
+            requestFilterGrid.setItems();
+            requestPredictedGrid.setItems();
+        }
     }
 
     private VerticalLayout getRequestPredictedGrid() {
@@ -300,5 +338,10 @@ public class RouteFormView extends Composite<VerticalLayout> {
         NONE,
         WEIGH_BASED,
         FEATURE_BASED
+    }
+
+    public void editRoute(RouteDAO routeDAO){
+        this.routeDAO = routeDAO;
+        setContent();
     }
 }

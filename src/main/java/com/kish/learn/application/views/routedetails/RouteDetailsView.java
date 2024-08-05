@@ -2,26 +2,21 @@ package com.kish.learn.application.views.routedetails;
 
 import com.kish.learn.application.business.route.RouteSvc;
 import com.kish.learn.application.business.route.dao.RouteDAO;
-import com.kish.learn.application.business.route.enumeration.HTTPMethod;
 import com.kish.learn.application.views.MainLayout;
+import com.kish.learn.application.views.routeform.RouteFormView;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.combobox.MultiSelectComboBox;
-import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -30,15 +25,14 @@ import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @PageTitle("RouteDetails")
 @Route(value = "", layout = MainLayout.class)
@@ -46,16 +40,16 @@ import org.springframework.data.jpa.domain.Specification;
 @Uses(Icon.class)
 public class RouteDetailsView extends Div {
 
-    private Grid<RouteDAO> grid;
+    private Grid<RouteDAO> routeDAOGrid;
 
-    private Filters filters;
+    private final Filters filters;
     private final RouteSvc routeSvc;
 
     public RouteDetailsView(RouteSvc routeSvc) {
         this.routeSvc = routeSvc;
         setSizeFull();
         addClassNames("route-details-view");
-        filters = new Filters(() -> refreshGrid());
+        filters = new Filters(this::refreshGrid);
         VerticalLayout layout = new VerticalLayout(createMobileFilters(), filters, createGrid());
         layout.setSizeFull();
         layout.setPadding(false);
@@ -176,26 +170,30 @@ public class RouteDetailsView extends Div {
     }
 
     private Component createGrid() {
-        grid = new Grid<>(RouteDAO.class, false);
-        grid.addColumn("routeIdentifier").setAutoWidth(true);
-        grid.addColumn("method").setAutoWidth(true);
-        grid.addColumn("path").setAutoWidth(true);
-        grid.addColumn("routeUriBlue").setAutoWidth(true);
-        grid.addColumn("isFeatureFlag").setAutoWidth(true);
-        grid.addColumn("featureFlagKey").setAutoWidth(true);
-        grid.addColumn("featureFlagValue").setAutoWidth(true);
+        routeDAOGrid = new Grid<>(RouteDAO.class, false);
+        GridContextMenu<RouteDAO> menu = routeDAOGrid.addContextMenu();
+        menu.addItem("View", event -> menu.getUI().ifPresent(ui -> ui.navigate(RouteFormView.class).ifPresent(edi -> edi.editRoute(event.getItem().get()))));
+        menu.addItem("Edit", event -> menu.getUI().ifPresent(ui -> ui.navigate(RouteFormView.class).ifPresent(edi -> edi.editRoute(event.getItem().get()))));
+        menu.addItem("Delete", event -> {});
+        routeDAOGrid.addColumn("routeIdentifier").setAutoWidth(true);
+        routeDAOGrid.addColumn("method").setAutoWidth(true);
+        routeDAOGrid.addColumn("path").setAutoWidth(true);
+        routeDAOGrid.addColumn("routeUriBlue").setAutoWidth(true);
+        routeDAOGrid.addColumn("isFeatureFlag").setAutoWidth(true);
+        routeDAOGrid.addColumn("featureFlagKey").setAutoWidth(true);
+        routeDAOGrid.addColumn("featureFlagValue").setAutoWidth(true);
 
-        grid.setItems(query -> routeSvc.list(
+        routeDAOGrid.setItems(query -> routeSvc.list(
                 PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)),
                 filters).stream());
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
-        grid.addClassNames(LumoUtility.Border.TOP, LumoUtility.BorderColor.CONTRAST_10);
+        routeDAOGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
+        routeDAOGrid.addClassNames(LumoUtility.Border.TOP, LumoUtility.BorderColor.CONTRAST_10);
 
-        return grid;
+        return routeDAOGrid;
     }
 
     private void refreshGrid() {
-        grid.getDataProvider().refreshAll();
+        routeDAOGrid.getDataProvider().refreshAll();
     }
 
 }
